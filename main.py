@@ -22,9 +22,9 @@ for env_var, file_path in cert_paths.items():
 kafka_config = {
     'bootstrap.servers': os.getenv('AIVEN_URI'), 
     'security.protocol': 'SSL',
-    'ssl.ca.location': 'ca.pem',
-    'ssl.certificate.location': 'service.cert',
-    'ssl.key.location': 'service.key'
+    'ssl.ca.location': '/tmp/ca.pem',
+    'ssl.certificate.location': '/tmp/service.cert',
+    'ssl.key.location': '/tmp/service.key'
 }
 
 producer = Producer(kafka_config)
