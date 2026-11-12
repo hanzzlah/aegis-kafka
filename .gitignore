@@ -1,0 +1,6 @@
+ca.pem
+service.cert
+service.key
+__pycache__/
+.venv/
+.env
