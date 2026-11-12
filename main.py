@@ -1,26 +1,27 @@
 import os
-import json
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from confluent_kafka import Producer
-load_dotenv()
+import json
+
 app = FastAPI()
 
-
 cert_paths = {
-    'ca.pem': '/tmp/ca.pem',
-    'service.cert': '/tmp/service.cert',
-    'service.key': '/tmp/service.key'
+    'CA_PEM': '/tmp/ca.pem',
+    'SERVICE_CERT': '/tmp/service.cert',
+    'SERVICE_KEY': '/tmp/service.key'
 }
 
 for env_var, file_path in cert_paths.items():
-    cert_content = os.getenv(env_var.replace('.', '_').upper()) 
-    if cert_content:
-        with open(file_path, 'w') as f:
-            f.write(cert_content + '\n')
+    cert_content = os.getenv(env_var)
+    if not cert_content:
+        raise ValueError(f"CRITICAL: Environment variable {env_var} is completely missing!")
+        
+    clean_content = cert_content.replace('\\n', '\n')
+    with open(file_path, 'w') as f:
+        f.write(clean_content + '\n')
 
 kafka_config = {
-    'bootstrap.servers': os.getenv('AIVEN_URI'), 
+    'bootstrap.servers': os.getenv('AIVEN_KAFKA_URI'), 
     'security.protocol': 'SSL',
     'ssl.ca.location': '/tmp/ca.pem',
     'ssl.certificate.location': '/tmp/service.cert',
