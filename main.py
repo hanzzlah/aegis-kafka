@@ -6,6 +6,19 @@ from confluent_kafka import Producer
 load_dotenv()
 app = FastAPI()
 
+
+cert_paths = {
+    'ca.pem': '/tmp/ca.pem',
+    'service.cert': '/tmp/service.cert',
+    'service.key': '/tmp/service.key'
+}
+
+for env_var, file_path in cert_paths.items():
+    cert_content = os.getenv(env_var.replace('.', '_').upper()) 
+    if cert_content:
+        with open(file_path, 'w') as f:
+            f.write(cert_content + '\n')
+
 kafka_config = {
     'bootstrap.servers': os.getenv('AIVEN_URI'), 
     'security.protocol': 'SSL',
