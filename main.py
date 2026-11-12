@@ -1,4 +1,5 @@
 import os
+import base64
 from fastapi import FastAPI, Request
 from confluent_kafka import Producer
 import json
@@ -12,13 +13,14 @@ cert_paths = {
 }
 
 for env_var, file_path in cert_paths.items():
-    cert_content = os.getenv(env_var)
-    if not cert_content:
-        raise ValueError(f"CRITICAL: Environment variable {env_var} is completely missing!")
+    b64_content = os.getenv(env_var)
+    if not b64_content:
+        raise ValueError(f"CRITICAL: Environment variable {env_var} is missing!")
         
-    clean_content = cert_content.replace('\\n', '\n')
+    clean_content = base64.b64decode(b64_content).decode('utf-8')
+    
     with open(file_path, 'w') as f:
-        f.write(clean_content + '\n')
+        f.write(clean_content)
 
 kafka_config = {
     'bootstrap.servers': os.getenv('AIVEN_KAFKA_URI'), 
