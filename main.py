@@ -35,6 +35,7 @@ producer = Producer(kafka_config)
 @app.post("/aegis-cdc")
 async def receive_supabase_webhook(request: Request):
     cdc_payload = await request.json()
+    print(f"🔔 Webhook triggered! Event: {cdc_payload.get('type')} | Table: {cdc_payload.get('table')}", flush=True)
     producer.produce(
         topic='cdc_profiles',
         value=json.dumps(cdc_payload).encode('utf-8')
@@ -44,4 +45,5 @@ async def receive_supabase_webhook(request: Request):
 
 @app.get("/")
 async def health_check():
+    print("Someone visited home.")
     return {"status": "ok"}
