@@ -41,3 +41,7 @@ async def receive_supabase_webhook(request: Request):
     )
     producer.flush()
     return {"message": "CDC event published to Aiven Kafka"}
+
+@app.get("/")
+async def health_check():
+    return {"status": "ok"}
