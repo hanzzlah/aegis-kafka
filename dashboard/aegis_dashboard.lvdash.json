@@ -1,0 +1,799 @@
+{
+  "datasets": [
+    {
+      "name": "17232abf",
+      "displayName": "bot_swarm_alerts",
+      "config": {
+        "version": "1.1",
+        "source": "aegis.gold.bot_swarm_alerts",
+        "dimensions": [
+          {
+            "expr": "source.*"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "2ed3d122",
+      "displayName": "account_velocity_alerts",
+      "queryLines": [
+        "SELECT\r\n",
+        "  window_start,\r\n",
+        "  user_id,\r\n",
+        "  total_interactions,\r\n",
+        "  distinct_posts,\r\n",
+        "  ROUND(trust_score, 2) AS trust_score,\r\n",
+        "  interaction_types\r\n",
+        "FROM aegis.gold.account_velocity_alerts\r\n",
+        "ORDER BY window_start DESC, total_interactions DESC\r\n",
+        "LIMIT 20;"
+      ]
+    },
+    {
+      "name": "5fc1d5ff",
+      "displayName": "user_profiles",
+      "queryLines": [
+        "SELECT\r\n",
+        "  COUNT(*) AS mitigated_accounts,\r\n",
+        "  SUM(CASE WHEN trust_score = 0.0 THEN 1 ELSE 0 END) AS zero_trust_bots\r\n",
+        "FROM aegis.silver.user_profiles\r\n",
+        "WHERE trust_score <= 0.1;"
+      ]
+    },
+    {
+      "name": "ebf8fafe",
+      "displayName": "telemetry_quarantined",
+      "queryLines": [
+        "SELECT\r\n",
+        "  CASE\r\n",
+        "    WHEN COUNT(*) = 0 THEN 'CLEAN_STREAM'\r\n",
+        "    ELSE 'QUARANTINED_EVENTS'\r\n",
+        "  END AS status,\r\n",
+        "  COUNT(*) AS quarantined_records\r\n",
+        "FROM aegis.silver.telemetry_quarantine;"
+      ]
+    },
+    {
+      "name": "b4f6aead",
+      "displayName": "threat_timeline",
+      "queryLines": [
+        "SELECT window_start, 'Bot Swarm' AS threat_type, COUNT(*) AS alert_count\r\n",
+        "FROM aegis.gold.bot_swarm_alerts\r\n",
+        "GROUP BY window_start\r\n",
+        "UNION ALL\r\n",
+        "SELECT window_start, 'Account Velocity' AS threat_type, COUNT(*) AS alert_count\r\n",
+        "FROM aegis.gold.account_velocity_alerts\r\n",
+        "GROUP BY window_start\r\n",
+        "ORDER BY window_start DESC;"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "27ae88f0",
+      "displayName": "Bot Swarm Monitor",
+      "layout": [
+        {
+          "widget": {
+            "name": "bot-swarms-hits-by-post",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "17232abf",
+                  "fields": [
+                    {
+                      "name": "post_id",
+                      "expression": "`post_id`"
+                    },
+                    {
+                      "name": "sum(total_interactions)",
+                      "expression": "SUM(`total_interactions`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "showDescription": false,
+                "title": {
+                  "value": "Bot Swarms Hits by Post",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "post_id",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(total_interactions)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "bot-swarm-timeline",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "17232abf",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "sum(bot_interactions)",
+                      "expression": "SUM(`bot_interactions`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Bot Swarm Timeline",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "mark": {
+                "lineShape": "linear",
+                "linePatterns": [
+                  "solid"
+                ],
+                "colors": [
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 1
+                  }
+                ]
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(bot_interactions)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "total-bot-swarm-hits",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "17232abf",
+                  "fields": [
+                    {
+                      "name": "sum(total_interactions)",
+                      "expression": "SUM(`total_interactions`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Total Bot Swarm Hits",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(total_interactions)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ccd211db",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "17232abf",
+                  "fields": [
+                    {
+                      "name": "countdistinct(post_id)",
+                      "expression": "COUNT(DISTINCT `post_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Targeted Posts",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(post_id)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 3,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "recent-bot-swarm-alerts",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "17232abf",
+                  "fields": [
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "post_id",
+                      "expression": "`post_id`"
+                    },
+                    {
+                      "name": "bot_interactions",
+                      "expression": "`bot_interactions`"
+                    },
+                    {
+                      "name": "total_interactions",
+                      "expression": "`total_interactions`"
+                    },
+                    {
+                      "name": "avg_trust_score",
+                      "expression": "`avg_trust_score`"
+                    },
+                    {
+                      "name": "unique_users",
+                      "expression": "`unique_users`"
+                    }
+                  ],
+                  "disaggregated": true,
+                  "orders": [
+                    {
+                      "direction": "ASC",
+                      "expression": "`post_id`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "headerAlignment": "center",
+                "title": {
+                  "value": "Recent Bot Swarm Alerts",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "window_start"
+                  },
+                  {
+                    "fieldName": "post_id"
+                  },
+                  {
+                    "fieldName": "bot_interactions"
+                  },
+                  {
+                    "fieldName": "total_interactions"
+                  },
+                  {
+                    "fieldName": "avg_trust_score"
+                  },
+                  {
+                    "fieldName": "unique_users"
+                  }
+                ],
+                "rowOrder": [
+                  {
+                    "by": "column",
+                    "field": {
+                      "index": 1
+                    }
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 6,
+            "width": 8,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "avg-trust-score",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "17232abf",
+                  "fields": [
+                    {
+                      "name": "avg(avg_trust_score)",
+                      "expression": "AVG(`avg_trust_score`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Avg Trust Score",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(avg_trust_score)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 10,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "heaviest-1-minute-attack",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "17232abf",
+                  "fields": [
+                    {
+                      "name": "max(bot_interactions)",
+                      "expression": "MAX(`bot_interactions`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Heaviest 1-minute Attack",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "max(bot_interactions)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 13,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "velocity-alerts",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "2ed3d122",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Velocity Alerts",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(*)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 16,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "auto-mitigated-bots",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "5fc1d5ff",
+                  "fields": [
+                    {
+                      "name": "sum(mitigated_accounts)",
+                      "expression": "SUM(`mitigated_accounts`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Auto-Mitigated Bots",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(mitigated_accounts)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 18,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "quarantined-malformed-events",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ebf8fafe",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Quarantined Malformed Events",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(*)"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 20,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "swarm-vs-velocity-attacks-over-time",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "b4f6aead",
+                  "fields": [
+                    {
+                      "name": "threat_type",
+                      "expression": "`threat_type`"
+                    },
+                    {
+                      "name": "window_start",
+                      "expression": "`window_start`"
+                    },
+                    {
+                      "name": "sum(alert_count)",
+                      "expression": "SUM(`alert_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Swarm vs. Velocity Attacks Over Time",
+                  "fields": []
+                }
+              },
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "window_start",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(alert_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "threat_type",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": []
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 16,
+            "width": 4,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#E6E9EA",
+        "dark": "#1E2931"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#15181C"
+      },
+      "widgetBorderColor": {
+        "light": "#F3F5F6",
+        "dark": "#21292F"
+      },
+      "fontColor": {
+        "light": "#1A2127",
+        "dark": "#EEF0F2"
+      },
+      "selectionColor": {
+        "light": "#0E7AB9",
+        "dark": "#41ADEC"
+      },
+      "visualizationColors": [
+        "#A6CEE3",
+        "#1F78B4",
+        "#B2DF8A",
+        "#33A02C",
+        "#FB9A99",
+        "#E31A1C",
+        "#FDBF6F",
+        "#FF7F00",
+        "#CAB2D6",
+        "#6A3D9A",
+        "#FFFF99",
+        "#B15928"
+      ],
+      "widgetHeaderAlignment": "CENTER",
+      "fontFamily": "Inter",
+      "widgetPadding": 8,
+      "widgetMargin": 8,
+      "widgetCornerRadius": 16,
+      "widgetShadow": 50,
+      "continuousGradient": {
+        "lightMode": {
+          "fromCategoricalIndex": 0
+        },
+        "darkMode": {
+          "fromCategoricalIndex": 0
+        }
+      },
+      "fontSettings": {
+        "base": {
+          "fontFamily": "Inter",
+          "fontColor": {
+            "light": "#1A2127",
+            "dark": "#EEF0F2"
+          },
+          "fontSize": 14,
+          "fontWeight": 400
+        },
+        "widgetTitle": {
+          "fontSize": 16,
+          "fontWeight": 500
+        },
+        "widgetDescription": {
+          "fontSize": 14,
+          "fontWeight": 400
+        },
+        "fieldTitle": {
+          "textCase": "TEXT_CASE_UPPERCASE",
+          "fontColor": {
+            "light": "#31373D",
+            "dark": "#D6D8DA"
+          },
+          "fontSize": 13,
+          "fontWeight": 400
+        },
+        "fieldValue": {
+          "fontColor": {
+            "light": "#31373D",
+            "dark": "#D6D8DA"
+          },
+          "fontSize": 13,
+          "fontWeight": 400
+        }
+      },
+      "gridLineColor": {
+        "light": "#D6D7D8",
+        "dark": "#3C3E42"
+      },
+      "axisLineColor": {
+        "light": "#B0B4B6",
+        "dark": "#555E64"
+      }
+    },
+    "applyModeEnabled": false
+  }
+}
