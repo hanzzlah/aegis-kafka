@@ -154,11 +154,17 @@ aegis-fraud-detection/
 
 ## 📊 Observability & Visual Proof
 
-> *Screenshots below capture live pipeline runs across Databricks AI/BI, Databricks Workflows, and Supabase.*
+### AI/BI Fraud & Swarm Analytics Dashboard
+*Tracks total swarm hits, velocity alerts, targeted posts, average trust score, auto-mitigated bots, and DLQ quarantine count.*
+![Databricks AI/BI Fraud & Swarm Analytics Dashboard](assets/dashboard_overview.png)
 
-* **Databricks AI/BI Fraud & Swarm Analytics Dashboard:** Tracks total swarm hits, velocity alerts, targeted posts, average trust score, auto-mitigated bots, and DLQ quarantine count (`assets/dashboard_overview.png`).
-* **Databricks Workflow DAG (`Aegis_Medallion_Pipeline`):** Multi-stage Serverless execution graph (`assets/workflow_dag.png`).
-* **Closed-Loop Mitigation Verification:** Supabase table state showing flagged bot `trust_score` automatically reset to `0.0` (`assets/supabase_mitigation.png`).
+### Medallion Workflow DAG (`Aegis_Medallion_Pipeline`)
+*Multi-stage Serverless execution graph from Bronze Kafka ingestion to Gold mitigation.*
+![Databricks Workflow DAG](assets/workflow_dag.png)
+
+### Closed-Loop Supabase Mitigation
+*Supabase table state showing flagged bot `trust_score` values automatically reset to `0.0`.*
+![Closed-Loop Mitigation Verification](assets/supabase_mitigation.png)
 
 ---
 
